@@ -1,6 +1,6 @@
-import { getRepository ,getCustomRepository } from 'typeorm'
+import { getRepository ,getCustomRepository } from 'typeorm';
 
-// import AppError from '../errors/AppError';
+import AppError from '../errors/AppError';
 
 import Transaction from '../models/Transaction';
 import Category from '../models/Category';
@@ -15,6 +15,13 @@ interface Request {
 
 class CreateTransactionService {
   public async execute({ title, value, type, category }: Request): Promise<Transaction> {
+    const transactionsRepository = getCustomRepository(TransactionsRepository);
+    const { total } = await transactionsRepository.getBalance();
+
+    if (type === 'outcome' && total - value < 0){
+      throw new AppError('Not have founds');
+    }
+
     const categoryRepository = getRepository(Category);
 
     const categoryFound = await categoryRepository.findOne({ title: category })
@@ -24,7 +31,6 @@ class CreateTransactionService {
 
     if(!categoryFound) await categoryRepository.save(transactionCategory)
 
-    const transactionsRepository = getCustomRepository(TransactionsRepository);
     const transaction = await transactionsRepository.create({
       title,
       value,
