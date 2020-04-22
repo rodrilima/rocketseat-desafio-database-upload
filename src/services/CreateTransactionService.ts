@@ -1,10 +1,10 @@
-import { getRepository ,getCustomRepository } from 'typeorm';
+import { getRepository, getCustomRepository } from 'typeorm';
 
 import AppError from '../errors/AppError';
 
 import Transaction from '../models/Transaction';
 import Category from '../models/Category';
-import TransactionsRepository from '../repositories/TransactionsRepository'
+import TransactionsRepository from '../repositories/TransactionsRepository';
 
 interface Request {
   title: string;
@@ -14,28 +14,33 @@ interface Request {
 }
 
 class CreateTransactionService {
-  public async execute({ title, value, type, category }: Request): Promise<Transaction> {
+  public async execute({
+    title,
+    value,
+    type,
+    category,
+  }: Request): Promise<Transaction> {
     const transactionsRepository = getCustomRepository(TransactionsRepository);
     const { total } = await transactionsRepository.getBalance();
 
-    if (type === 'outcome' && total - value < 0){
+    if (type === 'outcome' && total - value < 0) {
       throw new AppError('Not have founds');
     }
 
     const categoryRepository = getRepository(Category);
 
-    const categoryFound = await categoryRepository.findOne({ title: category })
+    const categoryFound = await categoryRepository.findOne({ title: category });
 
-    const transactionCategory = categoryFound
-    || await categoryRepository.create({ title: category })
+    const transactionCategory =
+      categoryFound || categoryRepository.create({ title: category });
 
-    if(!categoryFound) await categoryRepository.save(transactionCategory)
+    if (!categoryFound) await categoryRepository.save(transactionCategory);
 
-    const transaction = await transactionsRepository.create({
+    const transaction = transactionsRepository.create({
       title,
       value,
       type,
-      category_id: transactionCategory.id
+      category_id: transactionCategory.id,
     });
 
     await transactionsRepository.save(transaction);
